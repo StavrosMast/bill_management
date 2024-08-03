@@ -1,11 +1,80 @@
-import { Button, VerticalBox } from "std-widgets.slint";
-
+import { Button, VerticalBox, HorizontalBox, GridBox,StandardTableView } from "std-widgets.slint";
+component Button inherits Rectangle {
+    in-out property text <=> txt.text;
+    callback clicked <=> touch.clicked;
+    border-radius: root.height / 2;
+    border-width: 1px;
+    border-color: root.background.darker(25%);
+    background: touch.pressed ? #6b8282 : touch.has-hover ? #6c616c :  #456;
+    height: txt.preferred-height * 1.33;
+    min-width: txt.preferred-width + 20px;
+    txt := Text {
+        x: (parent.width - self.width)/2 + (touch.pressed ? 2px : 0);
+        y: (parent.height - self.height)/2 + (touch.pressed ? 1px : 0);
+        color: touch.pressed ? #fff : #eee;
+    }
+    touch := TouchArea { }
+}
+export component TableView inherits Window {
+    width: 230px;
+    height: 200px;
+    StandardTableView {
+        width: 230px;
+        height: 200px;
+        columns: [
+            { title: "Header 1" },
+            { title: "Header 2" },
+        ];
+        rows: [
+            [
+                { text: "Item 1" }, { text: "Item 2" },
+            ],
+            [
+                { text: "Item 1" }, { text: "Item 2" },
+            ],
+            [
+                { text: "Item 1" }, { text: "Item 2" },
+            ]
+        ];
+    }
+}
 export component AppWindow inherits Window {
+    width: 1024px;
+    height: 768px;
+    title:"Bill Management System";
     GridLayout {
         Row{
             Text {
                 text: "Organize your Bills";
+                font-size: 24px;
+                font-weight: 500;
                 color: #0a0a0a;
+            }
+        }
+        Row{
+            TableView {
+                
+            }
+            // GridBox {
+            //     Row{
+            //         Text {
+            //             text: "col1";
+            //         }
+            //         Text {
+            //             text: "col2";
+            //         }
+            //         Text {
+            //             text: "col3";
+            //         }
+            //     }
+            // }
+            
+        }
+        Row{
+            Button {
+                text: "Upload PDF";
+                // width: 50px;
+                // height: 20px;
             }
         }
     }

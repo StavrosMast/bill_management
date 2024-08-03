@@ -1,5 +1,8 @@
 slint::include_modules!();
-
+use lopdf::Document;
+use std::fs::File;
+use std::io::Read;
+use rfd::FileDialog;
 fn main() -> Result<(), slint::PlatformError> {
     let ui = AppWindow::new()?;
 
