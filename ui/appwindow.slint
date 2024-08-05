@@ -1,7 +1,8 @@
 import { Button, VerticalBox, HorizontalBox, GridBox,StandardTableView } from "std-widgets.slint";
 component Button inherits Rectangle {
+    
     in-out property text <=> txt.text;
-    callback clicked <=> touch.clicked;
+    callback clicked();
     border-radius: root.height / 2;
     border-width: 1px;
     border-color: root.background.darker(25%);
@@ -13,27 +14,31 @@ component Button inherits Rectangle {
         y: (parent.height - self.height)/2 + (touch.pressed ? 1px : 0);
         color: touch.pressed ? #fff : #eee;
     }
-    touch := TouchArea { }
+    touch := TouchArea { 
+        clicked => {root.clicked();}
+    }
 }
 export component TableView inherits Window {
-    width: 230px;
+    width: 1024px;
     height: 200px;
     StandardTableView {
-        width: 230px;
+        width: 1024px;
         height: 200px;
         columns: [
-            { title: "Header 1" },
-            { title: "Header 2" },
+            { title: "Bill Issuer" },
+            { title: "Date Issued" },
+            { title: "Date Due"},
+            { title: "Payment Amount"}
         ];
         rows: [
             [
-                { text: "Item 1" }, { text: "Item 2" },
+                { text: "Item 1" }, { text: "Item 2" }, { text: "Item 3" },
             ],
             [
-                { text: "Item 1" }, { text: "Item 2" },
+                { text: "Item 1" }, { text: "Item 2" }, { text: "Item 3" },
             ],
             [
-                { text: "Item 1" }, { text: "Item 2" },
+                { text: "Item 1" }, { text: "Item 2" }, { text: "Item 3" }
             ]
         ];
     }
@@ -42,9 +47,12 @@ export component AppWindow inherits Window {
     width: 1024px;
     height: 768px;
     title:"Bill Management System";
+    callback  open_file();
     GridLayout {
         Row{
             Text {
+                horizontal-alignment: center;
+                height: 136px;
                 text: "Organize your Bills";
                 font-size: 24px;
                 font-weight: 500;
@@ -70,12 +78,15 @@ export component AppWindow inherits Window {
             // }
             
         }
-        Row{
+
+        HorizontalLayout {
+            alignment: center;
             Button {
                 text: "Upload PDF";
-                // width: 50px;
+                width: 100px;
+                clicked => {root.open_file();}
                 // height: 20px;
             }
-        }
+        }   
     }
 }
