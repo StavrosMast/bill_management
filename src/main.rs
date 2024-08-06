@@ -28,6 +28,9 @@ fn main() -> Result<(), slint::PlatformError> {
                 Ok(text) => println!("{}", text),
                 Err(e) => eprintln!("Failed to extract text: {}", e),
             }
+            // ** TODO **
+            //1.Retrieve the required data from the extracted text.
+            //2.Add connection to db to save the data retrieved.
         } else {
             println!("No file selected.");
         }
