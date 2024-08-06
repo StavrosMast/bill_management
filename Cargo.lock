@@ -3230,6 +3230,7 @@ dependencies = [
  "lopdf 0.33.0",
  "pdf-extract",
  "polodb_core",
+ "regex",
  "rfd",
  "slint",
  "slint-build",
