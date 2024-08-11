@@ -77,12 +77,33 @@ fn main() -> Result<(), AppError> {
             match extract_text(temp_file.path()) {
                 Ok(text) => {
                     println!("Extracted Text:\n{}", text);
-                    // Define regex patterns for dates and prices
-                    let date_re = Regex::new(r"\b\d{4}-\d{2}-\d{2}\b").expect("Invalid regex for dates");
-                    let price_re = Regex::new(r"\b\d+\.\d{2}\b").expect("Invalid regex for prices");
-                    // Define regex pattern for the invoice number
-                    let invoice_re = Regex::new(r"Invoice number/Αριθμός τιμολογίου: (\d+\[\d+\]|\d+)").expect("Invalid regex for invoice number");
 
+                    // Define regex patterns
+                    let invoice_re = Regex::new(r"Invoice number/Αριθμός τιμολογίου: (\d+\[\d+\]|\d+)").expect("Invalid regex for invoice number");
+                    let period_re = Regex::new(r"Για την περίοδο (\d{2} \w+ \d{4}) - (\d{2} \w+ \d{4})").expect("Invalid regex for period");
+                    let date_due_re = Regex::new(r"Πληρωτέο μέχρι (\d{2}/\d{2}/\d{4})").expect("Invalid regex for date due");
+                    
+                    // Find and print the invoice number
+                    if let Some(captures) = date_due_re.captures(&text) {
+                        if let Some(date_due) = captures.get(1) {
+                            let date_due = date_due.as_str();
+                            println!("Found Date due: {}", date_due);
+                            // Insert the invoice number into the database
+                        }
+                    }else {
+                        println!("No Date due found.")
+                    }
+                    // Find and extract the start and end dates
+                    if let Some(captures) = period_re.captures(&text) {
+                        if let (Some(start_date), Some(end_date)) = (captures.get(1), captures.get(2)) {
+                            let start_date = start_date.as_str();
+                            let end_date = end_date.as_str();
+                            println!("Start date: {}", start_date);
+                            println!("End date: {}", end_date);
+                        }
+                    } else {
+                        println!("No period found.");
+                    }
                     // Find and print the invoice number
                     if let Some(captures) = invoice_re.captures(&text) {
                         if let Some(invoice_number) = captures.get(1) {
@@ -97,15 +118,6 @@ fn main() -> Result<(), AppError> {
                                 eprintln!("Failed to insert invoice number: {}", e);
                             }
                         }
-                    }
-                    // Find and print all dates
-                    for date in date_re.find_iter(&text) {
-                        println!("Found date: {}", date.as_str());
-                    }
-
-                    // Find and print all prices
-                    for price in price_re.find_iter(&text) {
-                        println!("Found price: {}", price.as_str());
                     }
                 },
                 Err(e) => eprintln!("Failed to extract text: {}", e),

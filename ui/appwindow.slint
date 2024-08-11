@@ -5,7 +5,7 @@ component Button inherits Rectangle {
     callback clicked();
     border-radius: root.height / 2;
     border-width: 1px;
-    border-color: root.background.darker(25%);
+    border-color: root.background.darker(50%);
     background: touch.pressed ? #6b8282 : touch.has-hover ? #6c616c :  #456;
     height: txt.preferred-height * 1.33;
     min-width: txt.preferred-width + 20px;
