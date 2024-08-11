@@ -13,8 +13,9 @@ lopdf="0.33.0"
 rfd="0.14.1"
 pdf-extract = "0.7.7"
 tempfile = "3.11.0"
-polodb_core = "4.4.2"
 regex = "1.10.6"
+rusqlite = "0.32.1"
+dotenv = "0.15.0"
 
 [build-dependencies]
 slint-build = "1.6"

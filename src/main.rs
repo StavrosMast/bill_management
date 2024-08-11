@@ -4,11 +4,55 @@ use rfd::FileDialog;
 use pdf_extract::extract_text;
 use tempfile::NamedTempFile;
 use regex::Regex;
+use std::env;
+use dotenv::dotenv;
+use rusqlite::{Connection,Result};
+use slint::PlatformError;
+use rusqlite::Error as RusqliteError;
+use std::fmt;
 
 slint::include_modules!();
 
-fn main() -> Result<(), slint::PlatformError> {
+
+#[derive(Debug)]
+enum AppError {
+    Platform(PlatformError),
+    Sqlite(RusqliteError),
+    // Add more variants if needed
+}
+
+impl fmt::Display for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AppError::Platform(err) => write!(f, "Platform error: {}", err),
+            AppError::Sqlite(err) => write!(f, "SQLite error: {}", err),
+        }
+    }
+}
+
+impl std::error::Error for AppError {}
+
+impl From<PlatformError> for AppError {
+    fn from(err: PlatformError) -> Self {
+        AppError::Platform(err)
+    }
+}
+
+impl From<RusqliteError> for AppError {
+    fn from(err: RusqliteError) -> Self {
+        AppError::Sqlite(err)
+    }
+}
+
+fn main() -> Result<(), AppError> {
     let ui = AppWindow::new()?;
+
+    dotenv().ok(); // Load the .env file
+
+    // Read the value from the .env file
+    let database_url = env::var("DATABASE_URL").expect("You've not set the DATABASE_URL");
+
+    let conn = Connection::open(database_url)?;
 
     // function for the callback of ComboBox
     ui.on_selection_changed(|new_index,new_value| {
@@ -17,7 +61,7 @@ fn main() -> Result<(), slint::PlatformError> {
     });
 
     // callback for the button to open and read the pdf file
-    ui.on_open_file(|| {
+    ui.on_open_file(move|| {
         // Open file dialog for user to select a PDF file
         if let Some(path) = FileDialog::new().add_filter("PDF files", &["pdf"]).pick_file() {
             // Open the selected PDF file
@@ -42,7 +86,16 @@ fn main() -> Result<(), slint::PlatformError> {
                     // Find and print the invoice number
                     if let Some(captures) = invoice_re.captures(&text) {
                         if let Some(invoice_number) = captures.get(1) {
-                            println!("Found invoice number: {}", invoice_number.as_str());
+                            let invoice_number = invoice_number.as_str();
+                            println!("Found invoice number: {}", invoice_number);
+                            // Insert the invoice number into the database
+                            let insert_to_invoices_stmt = env::var("INVOICES_STMT").expect("You've not set the INVOICES_TABLE");
+                            if let Err(e) = conn.execute(
+                                insert_to_invoices_stmt.as_str(),
+                                &[&invoice_number],
+                            ) {
+                                eprintln!("Failed to insert invoice number: {}", e);
+                            }
                         }
                     }
                     // Find and print all dates
@@ -65,7 +118,8 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
-    ui.run()
+    ui.run().map_err(AppError::from)?;
+    Ok(())
 }
 
 
