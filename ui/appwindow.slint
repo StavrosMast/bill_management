@@ -1,4 +1,4 @@
-import { Button, VerticalBox, HorizontalBox, GridBox,StandardTableView } from "std-widgets.slint";
+import { Button, VerticalBox, HorizontalBox, GridBox,StandardTableView, ComboBox } from "std-widgets.slint";
 component Button inherits Rectangle {
     
     in-out property text <=> txt.text;
@@ -44,6 +44,10 @@ export component TableView inherits Window {
     }
 }
 export component AppWindow inherits Window {
+    in-out property <int> selected_index:0;
+    in-out property <string> selected_value:"Select Invoice Issuer";
+    callback selection_changed(int,string);
+    // property <[string]> options;
     width: 1024px;
     height: 768px;
     title:"Bill Management System";
@@ -59,26 +63,23 @@ export component AppWindow inherits Window {
                 color: #0a0a0a;
             }
         }
+        // Tableview to store invoice data
         Row{
             TableView {
                 
             }
-            // GridBox {
-            //     Row{
-            //         Text {
-            //             text: "col1";
-            //         }
-            //         Text {
-            //             text: "col2";
-            //         }
-            //         Text {
-            //             text: "col3";
-            //         }
-            //     }
-            // }
-            
         }
-
+        // ComboBox to select invoice issuer
+        Row{
+            ComboBox {
+                model: ["Select Invoice Issuer","vodafone","nrg","epic"];
+                current-index <=> root.selected_index;
+                current-value <=> root.selected_value;
+                selected => {root.selection_changed(root.selected_index,root.selected_value);}
+            }
+        }
+       
+        // Button to upload the pdf file via filedialog
         HorizontalLayout {
             alignment: center;
             Button {

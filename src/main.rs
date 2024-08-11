@@ -5,12 +5,18 @@ use pdf_extract::extract_text;
 use tempfile::NamedTempFile;
 use regex::Regex;
 
-
 slint::include_modules!();
 
 fn main() -> Result<(), slint::PlatformError> {
     let ui = AppWindow::new()?;
 
+    // function for the callback of ComboBox
+    ui.on_selection_changed(|new_index,new_value| {
+        println!("Selected index: {}", new_index);
+        println!("Selected value: {}", new_value);
+    });
+
+    // callback for the button to open and read the pdf file
     ui.on_open_file(|| {
         // Open file dialog for user to select a PDF file
         if let Some(path) = FileDialog::new().add_filter("PDF files", &["pdf"]).pick_file() {
