@@ -7,31 +7,11 @@ use regex::Regex;
 use std::env;
 use dotenv::dotenv;
 use rusqlite::{Connection,Result};
-use slint::{Model,PlatformError,ModelRc,SharedString,VecModel,StandardListViewItem,ModelTracker};
+use slint::{PlatformError, ModelRc, SharedString, VecModel, StandardListViewItem};
 use rusqlite::Error as RusqliteError;
 use std::fmt;
-use std::rc::Rc;
+use std::thread;
 slint::include_modules!();
-
-struct CustomModel {
-    inner: ModelRc<StandardListViewItem>,
-}
-
-impl Model for CustomModel {
-    type Data = ModelRc<StandardListViewItem>;
-
-    fn row_count(&self) -> usize {
-        self.inner.row_count()
-    }
-
-    fn row_data(&self, row: usize) -> Option<Self::Data> {
-        Some(ModelRc::new(self.inner.row_data(row)?))
-    }
-
-    fn model_tracker(&self) -> &dyn ModelTracker {
-        self.inner.model_tracker()
-    }
-}
 
 #[derive(Debug)]
 enum AppError {
@@ -69,20 +49,19 @@ fn main() -> Result<(), AppError> {
     // Retrieve data from the database
     let table_data = fetch_invoices_from_db().unwrap_or_else(|err| {
         eprintln!("Failed to fetch invoices: {}", err);
-        ModelRc::new(VecModel::from(vec![])) // Return an empty model if there's an error
+        vec![]
     });
 
-    // Pass the data to the UI
-    ui.global::<TableViewPageAdapter>().set_row_data(table_data);
-    // ui.set_table_data(table_data);
-// Convert data into the format expected by the Slint UI
-// let table_data: Vec<Vec<String>> = invoices
-//     .into_iter()
-//     .map(|row| vec![row.invoice_number, row.start_date, row.end_date, row.date_due])
-//     .collect();
-// println!("table data:{}",table_data);
-// // Pass data to the UI
-// ui.set_table_data(table_data);
+    let model_data = ModelRc::new(VecModel::from(
+        table_data.into_iter().map(|row| 
+            ModelRc::new(VecModel::from(
+                row.into_iter().map(|item| StandardListViewItem::from(SharedString::from(item))).collect::<Vec<_>>()
+            ))
+        ).collect::<Vec<_>>()
+    ));
+
+    ui.global::<TableViewPageAdapter>().set_row_data(model_data);
+    
     // function for the callback of ComboBox
     ui.on_selection_changed(|new_index,new_value| {
         println!("Selected index: {}", new_index);
@@ -190,196 +169,51 @@ fn get_data_for_epic(text: &str) -> Result<(), AppError>{
     Ok(())
 }
 
-// fn fetch_invoices_from_db() -> Result<ModelRc<ModelRc<StandardListViewItem>>> {
-//     dotenv::dotenv().ok(); // Load the .env file
-//     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-//     let conn = Connection::open(database_url)?;
-
-//     let mut stmt = conn.prepare("SELECT invoice_number, period_start_date, period_end_date, date_due FROM invoices")?;
-//     // let invoice_iter = stmt.query_map([], |row| {
-//     //     Ok(vec![
-//     //         row.get::<_, String>(0)?.into(), // Convert to SharedString
-//     //         row.get::<_, String>(1)?.into(), // Convert to SharedString
-//     //         row.get::<_, String>(2)?.into(), // Convert to SharedString
-//     //         row.get::<_, String>(3)?.into(), // Convert to SharedString
-//     //     ])
-//     // })?;
-//     let invoice_iter = stmt.query_map([], |row| {
-//         let invoice_number: SharedString = row.get::<_, String>(0)?.into();
-//         let period_start_date: SharedString = row.get::<_, String>(1)?.into();
-//         let period_end_date: SharedString = row.get::<_, String>(2)?.into();
-//         let date_due: SharedString = row.get::<_, String>(3)?.into();
-
-//         let item_text = format!(
-//             "{} | {} | {} | {}",
-//             invoice_number, period_start_date, period_end_date, date_due
-//         );
-
-//         Ok(StandardListViewItem::from(item_text.into())) // Convert to StandardListViewItem
-//     })?;
-
-//     // let mut invoices = Vec::new();
-//     // for invoice in invoice_iter {
-//     //     let row_data: Vec<StandardListViewItem> = invoice?;
-//     //     let row_model = VecModel::from(row_data); // Convert Vec<SharedString> to VecModel<SharedString>
-//     //     invoices.push(ModelRc::new(row_model)); // Convert to ModelRc<VecModel<SharedString>>
-//     // }
-//     let mut invoices = Vec::new(); // Create a vector to hold all the StandardListViewItems
-
-//     for invoice in invoice_iter {
-//         invoices.push(ModelRc::new(invoice?)); // Push each StandardListViewItem into the invoices vector
-//     }
-//     let vec_model = VecModel::from(invoices); // Create a VecModel from the vector of ModelRc<StandardListViewItem>
-//     Ok(ModelRc::new(ModelRc::new(vec_model)))
-//     // Ok(ModelRc::new(VecModel::from(invoices))) // Convert Vec<ModelRc<VecModel<SharedString>>> to ModelRc<VecModel<ModelRc<VecModel<SharedString>>>>
-// }
-fn fetch_invoices_from_db() -> Result<ModelRc<ModelRc<StandardListViewItem>>, Box<dyn std::error::Error>> {
-    dotenv::dotenv().ok(); // Load the .env file
+fn fetch_invoices_from_db() -> Result<Vec<Vec<String>>, Box<dyn std::error::Error>> {
+    dotenv::dotenv().ok();
     let database_url = env::var("DATABASE_URL")?;
     let conn = Connection::open(database_url)?;
 
     let mut stmt = conn.prepare("SELECT invoice_number, period_start_date, period_end_date, date_due FROM invoices")?;
 
     let invoice_iter = stmt.query_map([], |row| {
-        let invoice_number: SharedString = row.get::<_, String>(0)?.into();
-        let period_start_date: SharedString = row.get::<_, String>(1)?.into();
-        let period_end_date: SharedString = row.get::<_, String>(2)?.into();
-        let date_due: SharedString = row.get::<_, String>(3)?.into();
-
-        let item_text = format!(
-            "{} | {} | {} | {}",
-            invoice_number, period_start_date, period_end_date, date_due
-        );
-
-        Ok(StandardListViewItem::from(item_text.into()))
+        Ok(vec![
+            row.get(0)?,
+            row.get(1)?,
+            row.get(2)?,
+            row.get(3)?,
+        ])
     })?;
 
-    // let mut invoices = Vec::new();
-
-    // for invoice in invoice_iter {
-    //     invoices.push(ModelRc::new(invoice?)); // Collect StandardListViewItems
-    // }
-
-    // // Create a VecModel<StandardListViewItem>
-    // let vec_model = VecModel::from(invoices);
-
-    // // Wrap the VecModel in a ModelRc
-    // let wrapped_vec_model = ModelRc::new(vec_model);
-
-    // // Wrap the ModelRc<VecModel<StandardListViewItem>> in another ModelRc
-    // let final_model = ModelRc::new(wrapped_vec_model);
-
-    // Ok(final_model)
-    let mut invoices = Vec::new();
-
-    for invoice in invoice_iter {
-        let item = invoice?; // Get the StandardListViewItem
-        invoices.push(item); // Collect StandardListViewItems
-    }
-
-    // // Create a VecModel<StandardListViewItem>
-    // let vec_model = VecModel::from(invoices);
-
-    // // Wrap the VecModel in a ModelRc
-    // let wrapped_vec_model = ModelRc::new(vec_model);
-
-    // // Wrap the ModelRc<VecModel<StandardListViewItem>> in another ModelRc
-    // let final_model = ModelRc::new(wrapped_vec_model);
-    let mut invoices = Vec::new();
-
-for invoice in invoice_iter {
-    let item = invoice?; // Get the StandardListViewItem
-    invoices.push(item); // Collect StandardListViewItems
-}
-
-// Create a VecModel<StandardListViewItem>
-let vec_model = VecModel::from(invoices);
-
-// Wrap the VecModel in a ModelRc
-let wrapped_vec_model = ModelRc::new(vec_model);
-
-// Create a CustomModel that wraps the ModelRc
-let custom_model = CustomModel { inner: wrapped_vec_model };
-
-// Wrap the CustomModel in a ModelRc
-let final_model = ModelRc::new(custom_model);
-
-Ok(final_model)
+    let invoices: Vec<Vec<String>> = invoice_iter.collect::<Result<_, _>>()?;
+    Ok(invoices)
 }
 
 
-// fn fetch_invoices_from_db() -> Result<ModelRc<VecModel<StandardListViewItem>>> {
-//     dotenv::dotenv().ok(); // Load the .env file
-//     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-//     let conn = Connection::open(database_url)?;
+fn place_searched_users(ui: AppWindow) {
+    let ui_thread = ui.as_weak();
+    thread::spawn(move || { 
+        let ui = ui_thread.clone();
+        let do_it = slint::invoke_from_event_loop(move || {
+            let ui = ui.unwrap();
+            let table_data = fetch_invoices_from_db().unwrap_or_else(|err| {
+                eprintln!("Failed to fetch invoices: {}", err);
+                vec![]
+            });
 
-//     let mut stmt = conn.prepare("SELECT invoice_number, period_start_date, period_end_date, date_due FROM invoices")?;
-//     let invoice_iter = stmt.query_map([], |row| {
-//         Ok(StandardListViewItem {
-//             text: slint::format!(
-//                 "{} | {} | {} | {}",
-//                 row.get::<_, String>(0)?,
-//                 row.get::<_, String>(1)?,
-//                 row.get::<_, String>(2)?,
-//                 row.get::<_, String>(3)?
-//             ).into(),
-//         })
-//     })?;
+            let model_data = ModelRc::new(VecModel::from(
+                table_data.into_iter().map(|row| 
+                    ModelRc::new(VecModel::from(
+                        row.into_iter().map(|item| StandardListViewItem::from(SharedString::from(item))).collect::<Vec<_>>()
+                    ))
+                ).collect::<Vec<_>>()
+            ));
 
-//     let invoices: Vec<StandardListViewItem> = invoice_iter
-//         .filter_map(|result| result.ok())
-//         .collect();
+            ui.global::<TableViewPageAdapter>().set_row_data(model_data);
+        });
 
-//     Ok(ModelRc::new(VecModel::from(invoices)))
-// }
-
-
-// fn fetch_invoices_from_db() -> Result<ModelRc<VecModel<StandardListViewItem>>, Box<dyn std::error::Error>> {
-//     dotenv::dotenv().ok(); // Load the .env file
-//     let database_url = env::var("DATABASE_URL")?;
-//     let conn = rusqlite::Connection::open(database_url)?;
-
-//     let mut stmt = conn.prepare("SELECT invoice_number, period_start_date, period_end_date, date_due FROM invoices")?;
-//     let invoice_iter = stmt.query_map([], |row| {
-//         let item = StandardListViewItem::default(); // Create a default instance
-//         let text = format!(
-//             "{} | {} | {} | {}",
-//             row.get::<_, String>(0)?,
-//             row.get::<_, String>(1)?,
-//             row.get::<_, String>(2)?,
-//             row.get::<_, String>(3)?
-//         );
-//         item.set_text(text.into()); // Use the setter method to set the text
-//         Ok(item)
-//     })?;
-
-//     let invoices: Vec<StandardListViewItem> = invoice_iter
-//         .filter_map(|result| result.ok())
-//         .collect();
-
-//     Ok(ModelRc::new(VecModel::from(invoices)))
-// }
-
-
-// fn fetch_invoices_from_db() -> Result<ModelRc<VecModel<VecModel<SharedString>>>, Box<dyn std::error::Error>> {
-//     dotenv::dotenv().ok(); // Load the .env file
-//     let database_url = env::var("DATABASE_URL")?;
-//     let conn = Connection::open(database_url)?;
-
-//     let mut stmt = conn.prepare("SELECT invoice_number, period_start_date, period_end_date, date_due FROM invoices")?;
-//     let invoice_iter = stmt.query_map([], |row| {
-//         let row_data = vec![
-//             row.get::<_, String>(0)?.into(), // Convert to SharedString
-//             row.get::<_, String>(1)?.into(), // Convert to SharedString
-//             row.get::<_, String>(2)?.into(), // Convert to SharedString
-//             row.get::<_, String>(3)?.into(), // Convert to SharedString
-//         ];
-//         Ok(VecModel::from(row_data))
-//     })?;
-
-//     let invoices: Vec<VecModel<SharedString>> = invoice_iter
-//         .filter_map(|result| result.ok())
-//         .collect();
-
-//     Ok(ModelRc::new(VecModel::from(invoices)))
-// }
+        if let Err(e) = do_it {
+            eprintln!("Error: {:?}", e);
+        }
+    });
+}
