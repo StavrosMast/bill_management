@@ -1,44 +1,67 @@
-# Personal Bill Management System
+# Personal Bills Tracker
 
-A Rust Desktop Application that can read provided pdf documents for your bills and store the information inside a database so you will never lose track of your bill payments. Using Rust for the backend with PoloDB for the database. Also using Slint UI for the frontend to have a modern and pleasing result.
+## 📊 Overview
 
-# Slint Rust Template
+Personal Bills Tracker is a modern, user-friendly application designed to help you organize and manage your bills efficiently. Built with Rust and featuring a sleek UI powered by Slint, this app allows you to easily upload PDF bills, extract key information, and store it in a structured database for easy access and analysis.
 
-A template for a Rust application that's using [Slint](https://slint.rs) for the user interface.
+## 🌟 Features
 
-## About
+- 📁 PDF Upload: Easily upload your bills in PDF format.
+- 🔍 Automatic Data Extraction: The app automatically extracts key information like invoice numbers, billing periods, and due dates.
+- 💾 Database Storage: All extracted information is stored in a SQLite database for easy retrieval and management.
+- 📊 Data Visualization: View your bill information in a clean, easy-to-read table format.
+- 🔄 Real-time Updates: The UI updates in real-time as you add new bills.
+- 🎨 Modern UI: A sleek, intuitive interface built with Slint.
 
-This template helps you get started developing a Rust application with Slint as toolkit
-for the user interface. It demonstrates the integration between the `.slint` UI markup and
-Rust code, how to trigger react to callbacks, get and set properties and use basic widgets.
+## 🚀 Getting Started
 
-## Usage
+### Prerequisites
 
-1. Install Rust by following the [Rust Getting Started Guide](https://www.rust-lang.org/learn/get-started).
-   Once this is done, you should have the `rustc` compiler and the `cargo` build system installed in your path.
-2. Install [`cargo-generate`](https://github.com/cargo-generate/cargo-generate)
+- Rust (latest stable version)
+- Cargo
+- SQLite
+
+### Installation
+
+1. Clone the repository:
    ```
-   cargo install cargo-generate
+   git clone https://github.com/StavrosMast/personal-bills-tracker.git
+   cd personal-bills-tracker
    ```
-3. Set up a sample project with this template
-   ```
-   cargo generate --git https://github.com/slint-ui/slint-rust-template --name my-project
-   cd my-project
-   ```
-4. Build with cargo
+
+2. Set up the environment:
+   - Create a `.env` file in the project root.
+   - Add the following lines to the `.env` file:
+     ```
+     DATABASE_URL=path/to/your/database.db
+     INVOICES_STMT=your_insert_statement_here
+     ```
+
+3. Build the project:
    ```
    cargo build
    ```
-5. Run the application binary
+
+4. Run the application:
    ```
    cargo run
    ```
 
-We recommend using an IDE for development, along with our [LSP-based IDE integration for `.slint` files](https://github.com/slint-ui/slint/blob/master/tools/lsp/README.md). You can also load this project directly in [Visual Studio Code](https://code.visualstudio.com) and install our [Slint extension](https://marketplace.visualstudio.com/items?itemName=Slint.slint).
+## 🛠 Usage
 
-## Next Steps
+1. Launch the application.
+2. Use the "Upload PDF" button to select and upload a bill.
+3. The app will automatically extract and display the bill information.
+4. Use the table view to see all your stored bills.
+5. (Optional) Use the ComboBox to filter bills by issuer.
 
-We hope that this template helps you get started and you enjoy exploring making user interfaces with Slint. To learn more
-about the Slint APIs and the `.slint` markup language check out our [online documentation](https://slint.dev/docs).
+## 📝 License
 
-Don't forget to edit this README to replace it by yours
+This project is [MIT](https://choosealicense.com/licenses/mit/) licensed.
+
+## 🙏 Acknowledgements
+
+- [Rust](https://www.rust-lang.org/)
+- [Slint](https://slint-ui.com/)
+- [SQLite](https://www.sqlite.org/)
+- [pdf-extract](https://crates.io/crates/pdf-extract)
